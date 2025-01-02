@@ -4,10 +4,11 @@ grammar MiniLang;
 type: 'int' | 'float' | 'double' | 'string' | 'void';
 
 // Parser rules
-program: globalVariable* function* mainFunction EOF;
+program: (globalVariable | function | mainFunction)* EOF;
 
 globalVariable:
-	type VARIABLE_NAME ASSIGNMENT_OPERATOR expression SEMICOLON;
+	type VARIABLE_NAME ASSIGNMENT_OPERATOR expression SEMICOLON
+	| type VARIABLE_NAME SEMICOLON;
 
 function: type VARIABLE_NAME LPAREN parameterList? RPAREN block;
 
@@ -29,6 +30,7 @@ statement:
 
 declaration:
 	type VARIABLE_NAME (ASSIGNMENT_OPERATOR expression)? SEMICOLON;
+
 assignment:
 	VARIABLE_NAME ASSIGNMENT_OPERATOR expression SEMICOLON;
 
@@ -63,8 +65,7 @@ value:
 	| FLOAT_VALUE
 	| DOUBLE_VALUE
 	| STRING_VALUE
-	| VARIABLE_NAME
-	| functionCall;
+	| VARIABLE_NAME;
 
 // Lexer rules
 INTEGER_VALUE: [0-9]+;
