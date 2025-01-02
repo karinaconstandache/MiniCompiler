@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-// Generated from c:/Users/Adina/Desktop/MiniCompiler/MiniCompiler/MiniLang.g4 by ANTLR 4.13.1
+// Generated from d:/Projects/MiniCompiler/MiniCompiler/MiniLang.g4 by ANTLR 4.13.1
 
 // Unreachable code detected
 #pragma warning disable 0162
@@ -32,17 +32,125 @@ using IToken = Antlr4.Runtime.IToken;
 [System.CLSCompliant(false)]
 public interface IMiniLangVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <summary>
+	/// Visit a parse tree produced by <see cref="MiniLangParser.type"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitType([NotNull] MiniLangParser.TypeContext context);
+	/// <summary>
+	/// Visit a parse tree produced by <see cref="MiniLangParser.program"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitProgram([NotNull] MiniLangParser.ProgramContext context);
+	/// <summary>
+	/// Visit a parse tree produced by <see cref="MiniLangParser.globalVariable"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitGlobalVariable([NotNull] MiniLangParser.GlobalVariableContext context);
+	/// <summary>
+	/// Visit a parse tree produced by <see cref="MiniLangParser.function"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitFunction([NotNull] MiniLangParser.FunctionContext context);
+	/// <summary>
+	/// Visit a parse tree produced by <see cref="MiniLangParser.mainFunction"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitMainFunction([NotNull] MiniLangParser.MainFunctionContext context);
+	/// <summary>
+	/// Visit a parse tree produced by <see cref="MiniLangParser.parameterList"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitParameterList([NotNull] MiniLangParser.ParameterListContext context);
+	/// <summary>
+	/// Visit a parse tree produced by <see cref="MiniLangParser.parameter"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitParameter([NotNull] MiniLangParser.ParameterContext context);
+	/// <summary>
+	/// Visit a parse tree produced by <see cref="MiniLangParser.block"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitBlock([NotNull] MiniLangParser.BlockContext context);
+	/// <summary>
+	/// Visit a parse tree produced by <see cref="MiniLangParser.statement"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitStatement([NotNull] MiniLangParser.StatementContext context);
+	/// <summary>
 	/// Visit a parse tree produced by <see cref="MiniLangParser.declaration"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
 	Result VisitDeclaration([NotNull] MiniLangParser.DeclarationContext context);
 	/// <summary>
-	/// Visit a parse tree produced by <see cref="MiniLangParser.type"/>.
+	/// Visit a parse tree produced by <see cref="MiniLangParser.assignment"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>
 	/// <return>The visitor result.</return>
-	Result VisitType([NotNull] MiniLangParser.TypeContext context);
+	Result VisitAssignment([NotNull] MiniLangParser.AssignmentContext context);
+	/// <summary>
+	/// Visit a parse tree produced by <see cref="MiniLangParser.ifStatement"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitIfStatement([NotNull] MiniLangParser.IfStatementContext context);
+	/// <summary>
+	/// Visit a parse tree produced by <see cref="MiniLangParser.forLoop"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitForLoop([NotNull] MiniLangParser.ForLoopContext context);
+	/// <summary>
+	/// Visit a parse tree produced by <see cref="MiniLangParser.forInit"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitForInit([NotNull] MiniLangParser.ForInitContext context);
+	/// <summary>
+	/// Visit a parse tree produced by <see cref="MiniLangParser.forUpdate"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitForUpdate([NotNull] MiniLangParser.ForUpdateContext context);
+	/// <summary>
+	/// Visit a parse tree produced by <see cref="MiniLangParser.functionCall"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitFunctionCall([NotNull] MiniLangParser.FunctionCallContext context);
+	/// <summary>
+	/// Visit a parse tree produced by <see cref="MiniLangParser.argumentList"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitArgumentList([NotNull] MiniLangParser.ArgumentListContext context);
+	/// <summary>
+	/// Visit a parse tree produced by <see cref="MiniLangParser.returnStatement"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitReturnStatement([NotNull] MiniLangParser.ReturnStatementContext context);
+	/// <summary>
+	/// Visit a parse tree produced by <see cref="MiniLangParser.condition"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitCondition([NotNull] MiniLangParser.ConditionContext context);
+	/// <summary>
+	/// Visit a parse tree produced by <see cref="MiniLangParser.expression"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitExpression([NotNull] MiniLangParser.ExpressionContext context);
 	/// <summary>
 	/// Visit a parse tree produced by <see cref="MiniLangParser.value"/>.
 	/// </summary>

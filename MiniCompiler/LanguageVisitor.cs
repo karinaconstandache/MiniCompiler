@@ -1,9 +1,7 @@
 ﻿using Antlr4.Runtime.Misc;
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using MiniCompiler; // Import explicit pentru a folosi ProgramData definit în ProgramData.cs
 
 namespace MiniCompiler
 {
@@ -11,61 +9,63 @@ namespace MiniCompiler
     {
         private ProgramData _result = new ProgramData();
 
-        public override ProgramData VisitDeclaration([NotNull] MiniLangParser.DeclarationContext context)
+        public override ProgramData VisitGlobalVariable([NotNull] MiniLangParser.GlobalVariableContext context)
         {
-            VisitChildren(context);
-            return _result;
-        }
+            var type = context.type().GetText(); // Obține tipul variabilei
+            var name = context.VARIABLE_NAME().GetText(); // Obține numele variabilei
+            var value = context.expression()?.GetText(); // Obține valoarea (ca expresie)
 
-        public override ProgramData VisitType([NotNull] MiniLangParser.TypeContext context)
-        {
-            if (context.INTEGER_TYPE() != null)
+            _result.GlobalVariables.Add(new ProgramData.Variable
             {
-                _result.Variables.Add(new ProgramData.Variable { VariableType = ProgramData.Variable.Type.Int });
-            }
-            else if (context.FLOAT_TYPE() != null)
-            {
-                _result.Variables.Add(new ProgramData.Variable { VariableType = ProgramData.Variable.Type.Float });
-            }
-            else if (context.STRING_TYPE() != null)
-            {
-                _result.Variables.Add(new ProgramData.Variable { VariableType = ProgramData.Variable.Type.String });
-            }
-            else
-            {
-                throw new Exception("Unknown variable type");
-            }
+                VariableType = ParseVariableType(type),
+                Name = name,
+                Value = value
+            });
 
             return _result;
         }
 
-        public override ProgramData VisitValue([NotNull] MiniLangParser.ValueContext context)
+        public override ProgramData VisitFunction([NotNull] MiniLangParser.FunctionContext context)
         {
-            var lastVariable = _result.Variables.Last();
-            var value = context.INTEGER_VALUE()
-                 ?? context.FLOAT_VALUE()
-                 ?? context.STRING_VALUE();
+            var functionName = context.VARIABLE_NAME().GetText();
+            var returnType = ParseVariableType(context.type().GetText());
 
-            if (lastVariable.VariableType == ProgramData.Variable.Type.Int && context.INTEGER_VALUE() != null)
+            var function = new ProgramData.Function
             {
-                lastVariable.Value = context.INTEGER_VALUE().GetText();
-            }
-            else if (lastVariable.VariableType == ProgramData.Variable.Type.Float && context.FLOAT_VALUE() != null)
+                Name = functionName,
+                ReturnType = returnType
+            };
+
+            // Procesează parametrii
+            if (context.parameterList() != null)
             {
-                lastVariable.Value = context.FLOAT_VALUE().GetText();
-            }
-            else if (lastVariable.VariableType == ProgramData.Variable.Type.String && context.STRING_VALUE() != null)
-            {
-                lastVariable.Value = context.STRING_VALUE().GetText();
-            }
-            else
-            {
-                throw new Exception($"The type of the variable ({lastVariable.VariableType}) does not correspond with the " +
-                    $"value {value}");
+                foreach (var parameterContext in context.parameterList().parameter())
+                {
+                    var parameterType = ParseVariableType(parameterContext.type().GetText());
+                    var parameterName = parameterContext.VARIABLE_NAME().GetText();
+                    function.Parameters.Add(new ProgramData.Variable
+                    {
+                        VariableType = parameterType,
+                        Name = parameterName
+                    });
+                }
             }
 
+            // Procesează corpul funcției
+            VisitChildren(context.block());
+
+            _result.Functions.Add(function);
             return _result;
         }
 
+        private ProgramData.Variable.Type ParseVariableType(string type)
+        {
+            if (type == "int") return ProgramData.Variable.Type.Int;
+            if (type == "float") return ProgramData.Variable.Type.Float;
+            if (type == "string") return ProgramData.Variable.Type.String;
+            if (type == "double") return ProgramData.Variable.Type.Double;
+
+            throw new Exception($"Unknown type: {type}");
+        }
     }
 }

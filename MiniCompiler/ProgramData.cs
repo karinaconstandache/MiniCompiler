@@ -10,13 +10,24 @@ namespace MiniCompiler
             {
                 Int,
                 Float,
-                String
+                String,
+                Double
             }
+
             public Type VariableType { get; set; }
+            public string Name { get; set; }
             public dynamic Value { get; set; }
         }
 
-        public List<Variable> Variables { get; set; } = new List<Variable>();
-    }
+        public class Function
+        {
+            public string Name { get; set; }
+            public Variable.Type ReturnType { get; set; }
+            public List<Variable> Parameters { get; set; } = new List<Variable>();
+            public List<Variable> LocalVariables { get; set; } = new List<Variable>();
+        }
 
+        public List<Variable> GlobalVariables { get; set; } = new List<Variable>();
+        public List<Function> Functions { get; set; } = new List<Function>();
+    }
 }
