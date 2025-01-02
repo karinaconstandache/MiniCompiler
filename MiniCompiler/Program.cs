@@ -1,6 +1,7 @@
 ﻿using Antlr4.Runtime;
 using MiniCompiler;
 using System;
+using System.Linq;
 
 public class Program
 {
@@ -66,15 +67,44 @@ public class Program
             LanguageVisitor visitor = new LanguageVisitor();
             var programData = visitor.Visit(tree);
 
+
             // Output success message
             Console.WriteLine("Parsing completed successfully!");
 
+
             // Display parsed global variables and functions
             Console.WriteLine("Global Variables:");
-            foreach (var variable in programData.GlobalVariables)
+
+            if (programData == null)
             {
-                Console.WriteLine($"- Name: {variable.Name}, Type: {variable.VariableType}, Value: {variable.Value}");
+                Console.WriteLine("Error: `programData` is null.");
+                return;
             }
+
+            if (programData.GlobalVariables == null)
+            {
+                Console.WriteLine("Error: `GlobalVariables` is null.");
+                return;
+            }
+
+            if (!programData.GlobalVariables.Any())
+            {
+                Console.WriteLine("No global variables found.");
+            }
+            else
+            {
+                foreach (var variable in programData.GlobalVariables)
+                {
+                    if (variable == null)
+                    {
+                        Console.WriteLine("Error: A variable in `GlobalVariables` is null.");
+                        continue;
+                    }
+
+                    Console.WriteLine($"- Name: {variable.Name}, Type: {variable.VariableType}, Value: {variable.Value ?? "null"}");
+                }
+            }
+
 
             Console.WriteLine("Functions:");
             foreach (var function in programData.Functions)
