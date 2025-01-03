@@ -110,6 +110,12 @@ public interface IMiniLangVisitor<Result> : IParseTreeVisitor<Result> {
 	/// <return>The visitor result.</return>
 	Result VisitForLoop([NotNull] MiniLangParser.ForLoopContext context);
 	/// <summary>
+	/// Visit a parse tree produced by <see cref="MiniLangParser.whileStatement"/>.
+	/// </summary>
+	/// <param name="context">The parse tree.</param>
+	/// <return>The visitor result.</return>
+	Result VisitWhileStatement([NotNull] MiniLangParser.WhileStatementContext context);
+	/// <summary>
 	/// Visit a parse tree produced by <see cref="MiniLangParser.forInit"/>.
 	/// </summary>
 	/// <param name="context">The parse tree.</param>

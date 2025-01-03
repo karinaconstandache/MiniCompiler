@@ -2,6 +2,7 @@
 using System;
 using System.Linq;
 using System.Collections.Generic;
+using System.IO;
 
 namespace MiniCompiler
 {
@@ -11,7 +12,6 @@ namespace MiniCompiler
 
         public LanguageVisitor()
         {
-            // Inițializăm rezultatul cu liste goale
             _result = new ProgramData
             {
                 GlobalVariables = new List<ProgramData.Variable>(),
@@ -24,15 +24,13 @@ namespace MiniCompiler
             if (context == null)
                 throw new ArgumentNullException(nameof(context), "Program context cannot be null.");
 
-            base.VisitChildren(context); // Vizitează toți copiii nodului program
-            return _result; // Returnează obiectul rezultat
+            base.VisitChildren(context);
+            ValidateGlobalVariableUniqueness();
+            return _result;
         }
 
         public override ProgramData VisitGlobalVariable([NotNull] MiniLangParser.GlobalVariableContext context)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context), "Context cannot be null");
-
             var type = context.type()?.GetText();
             var name = context.VARIABLE_NAME()?.GetText();
             var value = context.expression() != null ? VisitExpression(context.expression()) : null;
@@ -40,21 +38,22 @@ namespace MiniCompiler
             if (string.IsNullOrEmpty(type) || string.IsNullOrEmpty(name))
                 throw new Exception("Invalid global variable declaration.");
 
-            _result.GlobalVariables.Add(new ProgramData.Variable
+            var variable = new ProgramData.Variable
             {
                 VariableType = ParseVariableType(type),
                 Name = name,
                 Value = value
-            });
+            };
+
+            _result.GlobalVariables.Add(variable);
+            File.AppendAllText("global_variables.txt", $"{variable.VariableType}, {variable.Name}, {variable.Value ?? "null"}\n");
 
             return _result;
         }
 
         public override ProgramData VisitFunction([NotNull] MiniLangParser.FunctionContext context)
         {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context), "Context cannot be null");
-
+            // Obținem numele și tipul funcției
             var functionName = context.VARIABLE_NAME()?.GetText();
             var returnType = ParseVariableType(context.type()?.GetText());
 
@@ -67,7 +66,13 @@ namespace MiniCompiler
                 ReturnType = returnType
             };
 
-            // Procesăm parametrii funcției
+            // Identificăm funcția main
+            if (functionName == "main" && returnType != ProgramData.Variable.Type.Int)
+            {
+                throw new Exception("The main function must return an int.");
+            }
+
+            // Procesăm parametrii funcției (dacă există)
             if (context.parameterList() != null)
             {
                 foreach (var parameterContext in context.parameterList().parameter())
@@ -86,11 +91,53 @@ namespace MiniCompiler
                 }
             }
 
-            // Procesăm corpul funcției
-            VisitChildren(context.block());
+            // Procesăm corpul funcției (blocul)
+            if (context.block() != null)
+            {
+                foreach (var stmt in context.block().statement())
+                {
+                    if (stmt.ifStatement() != null)
+                    {
+                        File.AppendAllText("functions.txt", $"Control Structure: if, Line: {stmt.Start.Line}\n");
+                    }
+                    else if (stmt.forLoop() != null)
+                    {
+                        File.AppendAllText("functions.txt", $"Control Structure: for, Line: {stmt.Start.Line}\n");
+                    }
+                    else if (stmt.whileStatement() != null)
+                    {
+                        File.AppendAllText("functions.txt", $"Control Structure: while, Line: {stmt.Start.Line}\n");
+                    }
+                    else if (stmt.declaration() != null)
+                    {
+                        var type = stmt.declaration().type()?.GetText();
+                        var name = stmt.declaration().VARIABLE_NAME()?.GetText();
+                        File.AppendAllText("functions.txt", $"Local Variable: {type} {name}, Line: {stmt.Start.Line}\n");
+                    }
+                }
+            }
+
+            // Salvăm detaliile funcției
+            var functionDetails = $"Function: {function.Name}, Return Type: {function.ReturnType}, " +
+                                  $"Parameters: {string.Join(", ", function.Parameters.Select(p => $"{p.VariableType} {p.Name}"))}\n";
+            File.AppendAllText("functions.txt", functionDetails);
 
             _result.Functions.Add(function);
             return _result;
+        }
+
+
+        private void ValidateGlobalVariableUniqueness()
+        {
+            var duplicates = _result.GlobalVariables
+                .GroupBy(v => v.Name)
+                .Where(g => g.Count() > 1)
+                .Select(g => g.Key);
+
+            foreach (var duplicate in duplicates)
+            {
+                File.AppendAllText("errors.txt", $"Duplicate global variable: {duplicate}\n");
+            }
         }
 
         private ProgramData.Variable.Type ParseVariableType(string type)
@@ -130,31 +177,7 @@ namespace MiniCompiler
                     return valueContext.VARIABLE_NAME().GetText();
             }
 
-            if (context.functionCall() != null)
-            {
-                var functionName = context.functionCall().VARIABLE_NAME().GetText();
-                var arguments = context.functionCall().argumentList()?.expression()
-                    .Select(arg => VisitExpression(arg))
-                    .ToList();
-
-                return $"Function Call: {functionName}({string.Join(", ", arguments)})";
-            }
-
             throw new Exception($"Unsupported expression: {context.GetText()}");
-        }
-
-        public override ProgramData VisitMainFunction([NotNull] MiniLangParser.MainFunctionContext context)
-        {
-            var mainFunction = new ProgramData.Function
-            {
-                Name = "main",
-                ReturnType = ProgramData.Variable.Type.Int
-            };
-
-            VisitChildren(context.block()); // Vizitează blocul funcției main
-
-            _result.Functions.Add(mainFunction);
-            return _result;
         }
     }
 }

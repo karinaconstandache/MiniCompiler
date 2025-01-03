@@ -1,7 +1,7 @@
 grammar MiniLang;
 
 // Define types
-type: 'int' | 'float' | 'double' | 'string' | 'void';
+type: INT | FLOAT | DOUBLE | STRING | VOID;
 
 // Parser rules
 program: (globalVariable | function | mainFunction)* EOF;
@@ -12,7 +12,7 @@ globalVariable:
 
 function: type VARIABLE_NAME LPAREN parameterList? RPAREN block;
 
-mainFunction: 'int' 'main' LPAREN RPAREN block;
+mainFunction: INT MAIN LPAREN RPAREN block;
 
 parameterList: parameter (COMMA parameter)*;
 parameter: type VARIABLE_NAME;
@@ -24,6 +24,7 @@ statement:
 	| assignment
 	| ifStatement
 	| forLoop
+	| whileStatement
 	| functionCall SEMICOLON
 	| returnStatement
 	| expression SEMICOLON;
@@ -34,10 +35,12 @@ declaration:
 assignment:
 	VARIABLE_NAME ASSIGNMENT_OPERATOR expression SEMICOLON;
 
-ifStatement: 'if' LPAREN condition RPAREN block ( 'else' block)?;
+ifStatement: IF LPAREN condition RPAREN block ( ELSE block)?;
 
 forLoop:
-	'for' LPAREN forInit condition SEMICOLON forUpdate RPAREN block;
+	FOR LPAREN forInit condition SEMICOLON forUpdate RPAREN block;
+
+whileStatement: WHILE LPAREN condition RPAREN block;
 
 forInit: declaration | assignment;
 forUpdate: assignment | expression;
@@ -45,7 +48,7 @@ forUpdate: assignment | expression;
 functionCall: VARIABLE_NAME LPAREN argumentList? RPAREN;
 argumentList: expression (COMMA expression)*;
 
-returnStatement: 'return' (expression)? SEMICOLON;
+returnStatement: RETURN (expression)? SEMICOLON;
 
 condition:
 	expression (RELATIONAL_OPERATOR expression)?
@@ -68,6 +71,18 @@ value:
 	| VARIABLE_NAME;
 
 // Lexer rules
+INT: 'int';
+FLOAT: 'float';
+DOUBLE: 'double';
+STRING: 'string';
+VOID: 'void';
+IF: 'if';
+ELSE: 'else';
+FOR: 'for';
+WHILE: 'while';
+RETURN: 'return';
+MAIN: 'main';
+
 INTEGER_VALUE: [0-9]+;
 FLOAT_VALUE: [0-9]+ '.' [0-9]+;
 DOUBLE_VALUE: [0-9]+ '.' [0-9]+ ('e' [+-]? [0-9]+)?;
