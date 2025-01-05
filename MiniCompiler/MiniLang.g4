@@ -27,7 +27,8 @@ statement:
 	| whileStatement
 	| functionCall SEMICOLON
 	| returnStatement
-	| expression SEMICOLON;
+	| expression SEMICOLON
+	| VARIABLE_NAME LPAREN argumentList? RPAREN SEMICOLON; // Fix pentru apelurile de funcții
 
 declaration:
 	type VARIABLE_NAME (ASSIGNMENT_OPERATOR expression)? SEMICOLON;
@@ -105,4 +106,4 @@ RBRACE: '}';
 // Skip whitespace and comments
 WS: [ \t\r\n]+ -> skip;
 COMMENT: '//' ~[\r\n]* -> skip;
-MULTILINE_COMMENT: '/*' .*? '*/' -> skip;
+MULTILINE_COMMENT: '/' .? '*/' -> skip;

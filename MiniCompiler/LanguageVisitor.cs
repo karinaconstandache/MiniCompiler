@@ -51,6 +51,31 @@ namespace MiniCompiler
             return _result;
         }
 
+        private bool HasReturnStatement(MiniLangParser.BlockContext block)
+        {
+            if (block == null)
+                return false;
+
+            foreach (var stmt in block.statement())
+            {
+                if (stmt.returnStatement() != null)
+                    return true;
+
+                // Verificăm și în structurile de control (if-else)
+                if (stmt.ifStatement() != null)
+                {
+                    var ifStmt = stmt.ifStatement();
+                    bool hasReturnInIf = ifStmt.block(0) != null && HasReturnStatement(ifStmt.block(0));
+                    bool hasReturnInElse = ifStmt.block(1) != null && HasReturnStatement(ifStmt.block(1));
+
+                    if (!hasReturnInIf || (ifStmt.block(1) != null && !hasReturnInElse))
+                        return false;
+                }
+            }
+
+            return false;
+        }
+
         public override ProgramData VisitFunction([NotNull] MiniLangParser.FunctionContext context)
         {
             // Obținem numele și tipul funcției
@@ -117,6 +142,12 @@ namespace MiniCompiler
                 }
             }
 
+            // Verificăm dacă funcția are un return pe toate ramurile
+            if (!HasReturnStatement(context.block()))
+            {
+                File.AppendAllText("errors.txt", $"Warning: Function '{function.Name}' may not return a value in all cases.\n");
+            }
+
             // Salvăm detaliile funcției
             var functionDetails = $"Function: {function.Name}, Return Type: {function.ReturnType}, " +
                                   $"Parameters: {string.Join(", ", function.Parameters.Select(p => $"{p.VariableType} {p.Name}"))}\n";
@@ -126,6 +157,23 @@ namespace MiniCompiler
             return _result;
         }
 
+
+        public override ProgramData VisitFunctionCall([NotNull] MiniLangParser.FunctionCallContext context)
+        {
+            var functionName = context.VARIABLE_NAME().GetText();
+
+            Console.WriteLine($"DEBUG: Function call detected - {functionName}");
+
+            // Verificăm dacă funcția este definită
+            if (!_result.Functions.Any(f => f.Name == functionName))
+            {
+                Console.WriteLine($"ERROR: Function '{functionName}' is not defined.");
+                File.AppendAllText("errors.txt", $"Error: Function '{functionName}' is not defined.\n");
+                throw new Exception($"Function '{functionName}' is not defined.");
+            }
+
+            return base.VisitFunctionCall(context);
+        }
 
         private void ValidateGlobalVariableUniqueness()
         {
@@ -159,8 +207,11 @@ namespace MiniCompiler
 
         private dynamic VisitExpression(MiniLangParser.ExpressionContext context)
         {
-            if (context == null)
-                return null;
+            if (context == null || string.IsNullOrWhiteSpace(context.GetText()))
+            {
+                File.AppendAllText("errors.txt", "Error: Incomplete expression detected.\n");
+                throw new Exception("Incomplete expression detected.");
+            }
 
             if (context.value() != null)
             {
