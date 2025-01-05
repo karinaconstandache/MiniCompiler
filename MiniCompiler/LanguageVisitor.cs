@@ -53,28 +53,34 @@ namespace MiniCompiler
 
         private bool HasReturnStatement(MiniLangParser.BlockContext block)
         {
-            if (block == null)
-                return false;
+            if (block == null) return false;
+
+            bool hasReturn = false;
 
             foreach (var stmt in block.statement())
             {
+                // ✅ Direct return statement found
                 if (stmt.returnStatement() != null)
                     return true;
 
-                // Verificăm și în structurile de control (if-else)
+                // ✅ Check inside if-else
                 if (stmt.ifStatement() != null)
                 {
                     var ifStmt = stmt.ifStatement();
-                    bool hasReturnInIf = ifStmt.block(0) != null && HasReturnStatement(ifStmt.block(0));
-                    bool hasReturnInElse = ifStmt.block(1) != null && HasReturnStatement(ifStmt.block(1));
+                    bool hasReturnInIf = HasReturnStatement(ifStmt.block(0)); // If block
+                    bool hasReturnInElse = ifStmt.block(1) != null && HasReturnStatement(ifStmt.block(1)); // Else block
 
+                    // ❌ If there is an "if" but no return in "else", function might not return
                     if (!hasReturnInIf || (ifStmt.block(1) != null && !hasReturnInElse))
                         return false;
+
+                    hasReturn = true;
                 }
             }
 
-            return false;
+            return hasReturn;
         }
+
 
         public override ProgramData VisitFunction([NotNull] MiniLangParser.FunctionContext context)
         {
@@ -145,6 +151,7 @@ namespace MiniCompiler
             // Verificăm dacă funcția are un return pe toate ramurile
             if (!HasReturnStatement(context.block()))
             {
+                Console.WriteLine($"Warning: Function '{function.Name}' may not return a value in all cases.");
                 File.AppendAllText("errors.txt", $"Warning: Function '{function.Name}' may not return a value in all cases.\n");
             }
 
@@ -154,7 +161,81 @@ namespace MiniCompiler
             File.AppendAllText("functions.txt", functionDetails);
 
             _result.Functions.Add(function);
+
+            // 🔥 Visit the function body to ensure function calls inside it are processed
+            if (context.block() != null)
+            {
+                VisitBlock(context.block()); // 🔥 This ensures we visit function calls inside!
+            }
+
             return _result;
+        }
+
+        public override ProgramData VisitMainFunction([NotNull] MiniLangParser.MainFunctionContext context)
+        {
+            Console.WriteLine("Detected main function!");
+
+            var functionName = "main"; // Hardcoded for main
+            var returnType = ProgramData.Variable.Type.Int; // Must be int
+
+            var function = new ProgramData.Function
+            {
+                Name = functionName,
+                ReturnType = returnType
+            };
+
+            // Process and log function body
+            if (context.block() != null)
+            {
+                foreach (var stmt in context.block().statement())
+                {
+                    if (stmt.ifStatement() != null)
+                    {
+                        File.AppendAllText("functions.txt", $"Control Structure: if, Line: {stmt.Start.Line}\n");
+                    }
+                    else if (stmt.forLoop() != null)
+                    {
+                        File.AppendAllText("functions.txt", $"Control Structure: for, Line: {stmt.Start.Line}\n");
+                    }
+                    else if (stmt.whileStatement() != null)
+                    {
+                        File.AppendAllText("functions.txt", $"Control Structure: while, Line: {stmt.Start.Line}\n");
+                    }
+                    else if (stmt.declaration() != null)
+                    {
+                        var type = stmt.declaration().type()?.GetText();
+                        var name = stmt.declaration().VARIABLE_NAME()?.GetText();
+                        File.AppendAllText("functions.txt", $"Local Variable: {type} {name}, Line: {stmt.Start.Line}\n");
+                    }
+                }
+
+                // Ensure we visit all statements inside main
+                VisitBlock(context.block());
+            }
+
+            // Verify return statement presence
+            if (!HasReturnStatement(context.block()))
+            {
+                Console.WriteLine($"Warning: Function '{function.Name}' may not return a value in all cases.");
+                File.AppendAllText("errors.txt", $"Warning: Function '{function.Name}' may not return a value in all cases.\n");
+            }
+
+            // Save function details
+            var functionDetails = $"Function: {function.Name}, Return Type: {function.ReturnType}\n";
+            File.AppendAllText("functions.txt", functionDetails);
+
+            _result.Functions.Add(function);
+            return _result;
+        }
+
+        public override ProgramData VisitBlock([NotNull] MiniLangParser.BlockContext context)
+        {
+            foreach (var stmt in context.statement())
+            {
+                VisitStatement(stmt); // 🔥 Ensure function calls inside blocks are visited
+            }
+
+            return base.VisitBlock(context);
         }
 
 
@@ -162,18 +243,17 @@ namespace MiniCompiler
         {
             var functionName = context.VARIABLE_NAME().GetText();
 
-            Console.WriteLine($"DEBUG: Function call detected - {functionName}");
-
-            // Verificăm dacă funcția este definită
+            // Check if the function is defined
             if (!_result.Functions.Any(f => f.Name == functionName))
             {
-                Console.WriteLine($"ERROR: Function '{functionName}' is not defined.");
+                Console.WriteLine($"Error: Function '{functionName}' is not defined.");
                 File.AppendAllText("errors.txt", $"Error: Function '{functionName}' is not defined.\n");
                 throw new Exception($"Function '{functionName}' is not defined.");
             }
 
             return base.VisitFunctionCall(context);
         }
+
 
         private void ValidateGlobalVariableUniqueness()
         {
@@ -184,6 +264,7 @@ namespace MiniCompiler
 
             foreach (var duplicate in duplicates)
             {
+                Console.WriteLine("Duplicate global variable: {duplicate}\n");
                 File.AppendAllText("errors.txt", $"Duplicate global variable: {duplicate}\n");
             }
         }
@@ -200,15 +281,23 @@ namespace MiniCompiler
                     return ProgramData.Variable.Type.String;
                 case "double":
                     return ProgramData.Variable.Type.Double;
+                case "void":
+                    return ProgramData.Variable.Type.Void;
                 default:
                     throw new Exception($"Unknown type: {type}");
             }
+        }
+
+        public override ProgramData VisitStatement([NotNull] MiniLangParser.StatementContext context)
+        {
+            return base.VisitStatement(context);
         }
 
         private dynamic VisitExpression(MiniLangParser.ExpressionContext context)
         {
             if (context == null || string.IsNullOrWhiteSpace(context.GetText()))
             {
+                Console.WriteLine("Error: Incomplete expression detected.\n");
                 File.AppendAllText("errors.txt", "Error: Incomplete expression detected.\n");
                 throw new Exception("Incomplete expression detected.");
             }
