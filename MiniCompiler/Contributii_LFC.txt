@@ -1,0 +1,14 @@
+- Definirea unitatilor lexicale ale mini-limbajului
+	- Karina, Radu
+- Neglijarea spat, iilor albe s, i a comentariilor
+	- Karina
+- Obtinerea listei de unitati lexicale
+	- Karina
+- Definirea regulilor sintactice ale mini-limbajului
+	- Karina, Radu
+- Generarea listei de variabile globale
+	- Karina
+- Generarea listei de functii si a detaliilor asociate
+	- Radu
+- Semnalarea erorilor
+	- Radu
