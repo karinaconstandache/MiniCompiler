@@ -9,6 +9,7 @@ namespace MiniCompiler
     public class LanguageVisitor : MiniLangBaseVisitor<ProgramData>
     {
         private readonly ProgramData _result;
+        private readonly HashSet<string> _functionSignatures = new HashSet<string>(); // Store unique function signatures
 
         public LanguageVisitor()
         {
@@ -81,63 +82,65 @@ namespace MiniCompiler
             return hasReturn;
         }
 
-
         public override ProgramData VisitFunction([NotNull] MiniLangParser.FunctionContext context)
         {
-            // Obținem numele și tipul funcției
             var functionName = context.VARIABLE_NAME()?.GetText();
             var returnType = ParseVariableType(context.type()?.GetText());
 
             if (string.IsNullOrEmpty(functionName))
                 throw new Exception("Function name cannot be null or empty.");
 
-            var function = new ProgramData.Function
-            {
-                Name = functionName,
-                ReturnType = returnType
-            };
+            // 🔥 Construct function signature (name + parameters) to check duplicates
+            string functionSignature = functionName + "(";
+            List<string> paramTypes = new List<string>();
 
-            // Identificăm funcția main
-            if (functionName == "main" && returnType != ProgramData.Variable.Type.Int)
-            {
-                throw new Exception("The main function must return an int.");
-            }
-
-            // Procesăm parametrii funcției (dacă există)
             if (context.parameterList() != null)
             {
                 foreach (var parameterContext in context.parameterList().parameter())
                 {
                     var parameterType = ParseVariableType(parameterContext.type()?.GetText());
-                    var parameterName = parameterContext.VARIABLE_NAME()?.GetText();
-
-                    if (string.IsNullOrEmpty(parameterName))
-                        throw new Exception("Parameter name cannot be null or empty.");
-
-                    function.Parameters.Add(new ProgramData.Variable
-                    {
-                        VariableType = parameterType,
-                        Name = parameterName
-                    });
+                    paramTypes.Add(parameterType.ToString());
                 }
             }
 
-            // Procesăm corpul funcției (blocul)
+            functionSignature += string.Join(", ", paramTypes) + ")";
+
+            // 🔥 Check for duplicate function definitions
+            if (_functionSignatures.Contains(functionSignature))
+            {
+                string errorMsg = $"Error: Duplicate function declaration: {functionSignature}";
+                Console.WriteLine(errorMsg);
+                File.AppendAllText("errors.txt", errorMsg + "\n");
+                throw new Exception(errorMsg);
+            }
+
+            // ✅ Store function signature to prevent future duplicates
+            _functionSignatures.Add(functionSignature);
+
+            bool isRecursive = false; // Flag for recursion detection
+            bool hasInfiniteLoop = false; // Flag for infinite loop detection
+
+            // Process function body
             if (context.block() != null)
             {
                 foreach (var stmt in context.block().statement())
                 {
                     if (stmt.ifStatement() != null)
                     {
-                        File.AppendAllText("functions.txt", $"Control Structure: if, Line: {stmt.Start.Line}\n");
+                        string condition = stmt.ifStatement().condition()?.GetText();
+                        File.AppendAllText("functions.txt", $"Control Structure: if (Condition: {condition}), Line: {stmt.Start.Line}\n");
                     }
                     else if (stmt.forLoop() != null)
                     {
-                        File.AppendAllText("functions.txt", $"Control Structure: for, Line: {stmt.Start.Line}\n");
+                        string condition = stmt.forLoop().condition()?.GetText();
+                        hasInfiniteLoop = IsPotentialInfiniteLoop(stmt.forLoop());
+                        File.AppendAllText("functions.txt", $"Control Structure: for (Condition: {condition}), Line: {stmt.Start.Line}, Infinite Loop: {hasInfiniteLoop}\n");
                     }
                     else if (stmt.whileStatement() != null)
                     {
-                        File.AppendAllText("functions.txt", $"Control Structure: while, Line: {stmt.Start.Line}\n");
+                        string condition = stmt.whileStatement().condition()?.GetText();
+                        hasInfiniteLoop = IsPotentialInfiniteLoop(stmt.whileStatement());
+                        File.AppendAllText("functions.txt", $"Control Structure: while (Condition: {condition}), Line: {stmt.Start.Line}, Infinite Loop: {hasInfiniteLoop}\n");
                     }
                     else if (stmt.declaration() != null)
                     {
@@ -145,30 +148,121 @@ namespace MiniCompiler
                         var name = stmt.declaration().VARIABLE_NAME()?.GetText();
                         File.AppendAllText("functions.txt", $"Local Variable: {type} {name}, Line: {stmt.Start.Line}\n");
                     }
+                    else if (stmt.functionCall() != null)
+                    {
+                        var calledFunctionName = stmt.functionCall().VARIABLE_NAME()?.GetText();
+                        if (calledFunctionName == functionName) // 🔥 Recursive function call detected
+                        {
+                            isRecursive = true;
+                            File.AppendAllText("functions.txt", $"Recursive Call: {functionName} calls itself, Line: {stmt.Start.Line}\n");
+                        }
+                    }
+                    else if (stmt.returnStatement() != null)
+                    {
+                        var returnExpr = stmt.returnStatement().expression();
+                        if (returnExpr != null && ContainsRecursiveCall(returnExpr, functionName))
+                        {
+                            isRecursive = true;
+                            File.AppendAllText("functions.txt", $"Recursive Call: {functionName} calls itself in return statement, Line: {stmt.Start.Line}\n");
+                        }
+                    }
                 }
             }
 
-            // Verificăm dacă funcția are un return pe toate ramurile
-            if (!HasReturnStatement(context.block()))
+            if (hasInfiniteLoop)
             {
-                Console.WriteLine($"Warning: Function '{function.Name}' may not return a value in all cases.");
-                File.AppendAllText("errors.txt", $"Warning: Function '{function.Name}' may not return a value in all cases.\n");
+                Console.WriteLine($"Warning: Function '{functionName}' contains an infinite loop.");
             }
 
-            // Salvăm detaliile funcției
-            var functionDetails = $"Function: {function.Name}, Return Type: {function.ReturnType}, " +
-                                  $"Parameters: {string.Join(", ", function.Parameters.Select(p => $"{p.VariableType} {p.Name}"))}\n";
+            // Save function details
+            var functionDetails = $"Function: {functionName}, Return Type: {returnType}, " +
+                                  $"{(isRecursive ? "Recursive" : "")}, " +
+                                  $"{(hasInfiniteLoop ? "Contains Possible Infinite Loop" : "")}\n";
             File.AppendAllText("functions.txt", functionDetails);
 
-            _result.Functions.Add(function);
+            _result.Functions.Add(new ProgramData.Function
+            {
+                Name = functionName,
+                ReturnType = returnType
+            });
 
-            // 🔥 Visit the function body to ensure function calls inside it are processed
+            // 🔥 Visit function body to ensure function calls inside it are processed
             if (context.block() != null)
             {
-                VisitBlock(context.block()); // 🔥 This ensures we visit function calls inside!
+                VisitBlock(context.block());
             }
 
             return _result;
+        }
+
+        private bool ContainsRecursiveCall(MiniLangParser.ExpressionContext expr, string functionName)
+        {
+            if (expr == null)
+                return false;
+
+            // Check direct function call
+            if (expr.functionCall() != null)
+            {
+                return expr.functionCall().VARIABLE_NAME().GetText() == functionName;
+            }
+
+            // Check if the expression has nested expressions (like return n * factorial(n - 1))
+            foreach (var child in expr.children)
+            {
+                if (child is MiniLangParser.ExpressionContext subExpr)
+                {
+                    if (ContainsRecursiveCall(subExpr, functionName))
+                        return true;
+                }
+            }
+
+            return false;
+        }
+
+        private bool IsPotentialInfiniteLoop(MiniLangParser.WhileStatementContext context)
+        {
+            if (context.condition() == null)
+                return false;
+
+            string conditionText = context.condition().GetText();
+
+            // Always true conditions (possible infinite loop)
+            if (conditionText == "true" || conditionText == "1")
+            {
+                return !ContainsBreakOrReturn(context.block());
+            }
+
+            return false;
+        }
+
+        private bool IsPotentialInfiniteLoop(MiniLangParser.ForLoopContext context)
+        {
+            if (context.condition() == null)
+                return !ContainsBreakOrReturn(context.block()); // No condition -> Infinite loop if no break/return
+
+            string conditionText = context.condition().GetText();
+
+            // Always true conditions (possible infinite loop)
+            if (conditionText == "true" || conditionText == "1")
+            {
+                return !ContainsBreakOrReturn(context.block());
+            }
+
+            return false;
+        }
+
+        private bool ContainsBreakOrReturn(MiniLangParser.BlockContext block)
+        {
+            if (block == null)
+                return false;
+
+            foreach (var stmt in block.statement())
+            {
+                if (stmt.returnStatement() != null) return true; // ✅ Contains return -> Not infinite
+                if (stmt.GetText().Contains("break;")) return true; // ✅ Contains break -> Not infinite
+            }
+
+            return false;
         }
 
         public override ProgramData VisitMainFunction([NotNull] MiniLangParser.MainFunctionContext context)
