@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-// Generated from d:/Projects/MiniCompiler/MiniCompiler/MiniLang.g4 by ANTLR 4.13.1
+// Generated from c:/Users/Radu/Desktop/Facultate/An2/LFC/Tema2/MiniCompiler/MiniLang.g4 by ANTLR 4.13.1
 
 // Unreachable code detected
 #pragma warning disable 0162

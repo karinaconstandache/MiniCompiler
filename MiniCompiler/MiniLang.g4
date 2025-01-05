@@ -27,8 +27,7 @@ statement:
 	| whileStatement
 	| functionCall SEMICOLON
 	| returnStatement
-	| expression SEMICOLON
-	| VARIABLE_NAME LPAREN argumentList? RPAREN SEMICOLON; // Fix pentru apelurile de funcții
+	| expression SEMICOLON; 
 
 declaration:
 	type VARIABLE_NAME (ASSIGNMENT_OPERATOR expression)? SEMICOLON;

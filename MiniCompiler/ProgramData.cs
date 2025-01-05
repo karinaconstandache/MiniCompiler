@@ -11,7 +11,8 @@ namespace MiniCompiler
                 Int,
                 Float,
                 String,
-                Double
+                Double,
+                Void
             }
 
             public Type VariableType { get; set; }

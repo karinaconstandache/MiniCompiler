@@ -39,6 +39,15 @@ namespace MiniCompiler
             if (string.IsNullOrEmpty(type) || string.IsNullOrEmpty(name))
                 throw new Exception("Invalid global variable declaration.");
 
+            // 🔥 Check if a variable with the same name already exists
+            if (_result.GlobalVariables.Any(v => v.Name == name))
+            {
+                string errorMsg = $"Error: Global variable '{name}' is already declared.";
+                Console.WriteLine(errorMsg);
+                File.AppendAllText("errors.txt", errorMsg + "\n");
+                throw new Exception(errorMsg);
+            }
+
             var variable = new ProgramData.Variable
             {
                 VariableType = ParseVariableType(type),
@@ -51,6 +60,7 @@ namespace MiniCompiler
 
             return _result;
         }
+
 
         private bool HasReturnStatement(MiniLangParser.BlockContext block)
         {
@@ -176,7 +186,7 @@ namespace MiniCompiler
 
             // Save function details
             var functionDetails = $"Function: {functionName}, Return Type: {returnType}, " +
-                                  $"{(isRecursive ? "Recursive" : "")}, " +
+                                  $"{(isRecursive ? "Recursive" : "Iterative")}, " +
                                   $"{(hasInfiniteLoop ? "Contains Possible Infinite Loop" : "")}\n";
             File.AppendAllText("functions.txt", functionDetails);
 
@@ -347,8 +357,7 @@ namespace MiniCompiler
 
             return base.VisitFunctionCall(context);
         }
-
-
+        
         private void ValidateGlobalVariableUniqueness()
         {
             var duplicates = _result.GlobalVariables
@@ -358,10 +367,13 @@ namespace MiniCompiler
 
             foreach (var duplicate in duplicates)
             {
-                Console.WriteLine("Duplicate global variable: {duplicate}\n");
-                File.AppendAllText("errors.txt", $"Duplicate global variable: {duplicate}\n");
+                string errorMsg = $"Error: Duplicate global variable '{duplicate}'";
+                Console.WriteLine(errorMsg);
+                File.AppendAllText("errors.txt", errorMsg + "\n");
+                throw new Exception(errorMsg);
             }
         }
+
 
         private ProgramData.Variable.Type ParseVariableType(string type)
         {
